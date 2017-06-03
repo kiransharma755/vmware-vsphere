@@ -1,0 +1,60 @@
+## Fill in these Variables
+# the virtualmachine's name
+MACHINE=vm1
+# memory in MB
+MEMORY=2048
+# storage in MB
+STORAGE=8096
+# resin installation media path & filename
+RESIN_DISK="resin-MyApplication-1.8.0-1.13.0-eb7236d1bd7e.vmdk"
+# Storage disk, by defalt created in the current working directory!
+DISKFILE="./${MACHINE}.vdi"
+###
+
+
+## Convert the original image to a Virtualbox image as:
+# VBoxManage convertdd resin.img resin.vmdk --format vmdk
+# and then use RESIN_DISK="resin.vmdk" above
+
+echo "Createing Machine" && \
+VBoxManage createvm --name "$MACHINE" \
+  --ostype Linux_64 \
+  --register && \
+\
+echo "Setting up Machine" && \
+VBoxManage modifyvm "$MACHINE" \
+  --memory $MEMORY \
+  --ioapic off \
+  --firmware efi64 \
+  --rtcuseutc on && \
+\
+echo "Createing Storage Controller" && \
+VBoxManage storagectl "$MACHINE" \
+  --name SATA \
+  --add sata && \
+\
+echo "Creating Main Disk" && \
+VBoxManage createmedium disk \
+  --filename "$DISKFILE" \
+  --size $STORAGE && \
+\
+echo "Attaching Main Disk" && \
+VBoxManage storageattach "$MACHINE" \
+  --storagectl SATA \
+  --port 0 --device 0 --type hdd --medium "$DISKFILE" && \
+\
+echo "Attaching Resin Install Media" && \
+VBoxManage storageattach "$MACHINE" \
+  --storagectl SATA \
+  --port 1 --device 0 --type hdd --medium "$RESIN_DISK" && \
+\
+echo "Starting machine for first time setup" && \
+VBoxHeadless --startvm "$MACHINE" && \
+\
+echo "Removing install media" && \
+VBoxManage storageattach "$MACHINE" \
+  --storagectl SATA \
+  --port 1 --device 0 --type hdd --medium none && \
+\
+echo -e "You now can start machine for future use as: \nVBoxHeadless --startvm \"$MACHINE\""
+
